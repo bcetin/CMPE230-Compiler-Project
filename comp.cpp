@@ -12,6 +12,8 @@
               istream_iterator<string>(),
               back_push_backer(cont));
 }*/
+
+// YOU CANT HAVE VARIABLES STARTING WITH _
 void BAD()
 {
 	
@@ -99,17 +101,44 @@ vector<string> tokenizeExpression(string expr)
 	}
 }
 void printMov(ofstream& g,string dest,string source){
-
 	g<<"mov "+dest+","+source;
-
-
 }
 void printAdd(ofstream& g,string dest,string source){
 	g<<"add "+dest+","+source;
-
 }
+void printMul(ofstream& g,string source){
+	g<<"mul "+source;
+}
+void printPow(ofstream& g,string dest,string source){
+	// TODO
+}
+string createNewSpace()
+{
+		string newstr = "_comp_" + ++createdVariableCount;
+		varset.insert(newstr);
+		return newstr;
+}
+
+string giveSpace()
+{
+	if(freeSpaces.empty()){
+		return createNewSpace();
+	}
+	else{
+		string temp = freeSpaces.top();
+		freeSpaces.pop();
+		return temp;
+	}
+}
+void freeSpace(string name)
+{
+	if(name[0]!='_') return;
+	freeSpaces.push(name);
+}
+set<string> varset;
+int createdVariableCount=0;
+stack<string> freeSpaces;
 int main(int argc,char* argv[]){
-	set<string> varset;
  	string file=(string(argv[1]));
 	string newfilename=(file.substr(0,file.find_last_of('.'))+".asm");
 	ofstream g(newfilename);
@@ -120,8 +149,8 @@ int main(int argc,char* argv[]){
 		unsigned long tem=line.find("=");
 		if(tem==string::npos)
 		{
-
-
+			
+			
 			//TODO Tell assembly to print values
 		}
 
@@ -134,16 +163,61 @@ int main(int argc,char* argv[]){
 			for(int i=0;i<postfix.size();i++){
 
 				if(postfix[i]=="+"){
-
+					//BAD, MORE BAD IF TWO THINGS ARE OPERANDS
+					string l=myst.top();
+					myst.pop();
+					string r=myst.top();
+					myst.pop();
+					string result = giveSpace();
+					
+					printMov(g,result,l);
+					printAdd(g,result,r);
+					myst.push(result);
+					freeSpace(l);
+					freeSpace(r);
+					continue;
+				}
+				if(postfix[i]=="*"){
+					//BAD, MORE BAD IF TWO THINGS ARE OPERANDS
+					string l=myst.top();
+					myst.pop();
+					string r=myst.top();
+					myst.pop();
+					string result = giveSpace();
+					
+					printMov(g,"ax",l);
+					printMov(g,result,r);
+					printMul(g,result);
+					printMov(g,result,ax);
+					myst.push(result);
+					freeSpace(l);
+					freeSpace(r);
+					continue;
+				}
+				if(postfix[i]=="^"){
+					//BAD, MORE BAD IF TWO THINGS ARE OPERANDS
+					// TODO
+					
+					string l=myst.top();
+					myst.pop();
+					string r=myst.top();
+					myst.pop();
+					string result = giveSpace();
+					
+					printMov(g,"ax",l);
+					printMov(g,result,r);
+					printMul(g,result);
+					printMov(g,result,ax);
+					myst.push(result);
+					freeSpace(l);
+					freeSpace(r);
 					continue;
 				}
 				// operations
 
 				myst.push(postfix[i]);
-				if(!isdigit(postfix[i][0])){
-
+				if(!isdigit(postfix[i][0])){ // Our variables?
 					varset.insert(postfix[i]);
-
 				}
 
 
