@@ -1,4 +1,10 @@
 #include <cstdio>
+#include <string>
+#include <stack>
+#include <vector>
+#include <iostream>
+#include <fstream>
+#include <set>
 /*void split1(const string& str, Container& cont)
 {
     istringstream iss(str);
@@ -10,18 +16,18 @@ void BAD()
 {
 	
 }
-
-vector<string> infixToPostfix(vector<string>& infix)
+using namespace std;
+vector<string> infixToPostfix(vector<string> infix)
 { // + * , pow( ( )
 	vector<string> postfix;
 	stack<string> st;
-	for(int i=0;i<(int)infix.length;i++)
+	for(int i=0;i<(int)infix.size();i++)
 	{
 		if(infix[i] == ",")
 		{
 			while(st.top()!="pow(")
 			{
-				postfix.push_back(st.top());
+				postfix.push_back(st.top()+"");
 				st.pop();
 				if(st.empty) BAD();
 			}
@@ -49,19 +55,23 @@ vector<string> infixToPostfix(vector<string>& infix)
 		if(infix[i] == ")")
 		{
 			//BAD
-			while(st.top("("))
+			while(st.top()!="(" && st.top()!="pow(")
 			{
-				postfix.push_back(st.top());
+				postfix.push_back(st.top()+"");
 				st.pop();
+			}
+			if(st.top()=="pow("){
+				st.push("^");
 			}
 		}
 	}
-	
+
+	return postfix;
 	
 }
 
 
-vector<string> tokenizeExpression(string& expr)
+vector<string> tokenizeExpression(string expr)
 {
 	vector<string> tokens;
 	string temp = "";
@@ -74,7 +84,7 @@ vector<string> tokenizeExpression(string& expr)
 				tokens.push_back(temp+"(");
 				temp = "";
 			}
-			else if(temp.length > 0)
+			else if(temp.length() > 0)
 			{
 				tokens.push_back(temp);
 				temp = "";
@@ -88,20 +98,57 @@ vector<string> tokenizeExpression(string& expr)
 		}
 	}
 }
-using namespace std;
-int main(int argc,char* argv){
-    istringstream f(argv[1]);
+void printMov(ofstream& g,string dest,string source){
+
+	g<<"mov "+dest+","+source;
+
+
+}
+void printAdd(ofstream& g,string dest,string source){
+	g<<"add "+dest+","+source;
+
+}
+int main(int argc,char* argv[]){
+	set<string> varset;
+ 	string file=(string(argv[1]));
+	string newfilename=(file.substr(0,file.find_last_of('.'))+".asm");
+	ofstream g(newfilename);
+    ifstream f(argv[1]);
     string line;
     while (getline(f, line)){
-		string found=line.find("=");
-		if(found!=string::npos)
+		string found;
+		unsigned long tem=line.find("=");
+		if(tem==string::npos)
 		{
+
+
 			//TODO Tell assembly to print values
 		}
+
 		else
 		{
 			//Assuming single space around '='
-			tokenizeExpression(line.substr(found+2));
+
+			vector<string> postfix=infixToPostfix(tokenizeExpression(line.substr(tem+2)));
+			stack<string> myst;
+			for(int i=0;i<postfix.size();i++){
+
+				if(postfix[i]=="+"){
+
+					continue;
+				}
+				// operations
+
+				myst.push(postfix[i]);
+				if(!isdigit(postfix[i][0])){
+
+					varset.insert(postfix[i]);
+
+				}
+
+
+			}
+
 		}
 		/*vector<char> words;
         split1(line,words);*/
