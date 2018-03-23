@@ -5,6 +5,8 @@
 #include <iostream>
 #include <fstream>
 #include <set>
+#include <map>
+using namespace std;
 /*void split1(const string& str, Container& cont)
 {
     istringstream iss(str);
@@ -14,13 +16,24 @@
 }*/
 
 // YOU CANT HAVE VARIABLES STARTING WITH _
+// X = x assemblyde bunun cozulmesi lazim, MAPE CEVIR HEPSINI YENIDEN ADLANDIR
+int createdVariableCount=0,createdSpaceCount=0; // Variable = Original variables from comp code. Space = Temporary variables for our calculations
+map<string,string> varmap; // WE REPLACE VARS WITH $1 and go up.
+stack<string> freeSpaces;
 void BAD()
 {
 	
 }
-using namespace std;
+void DebugOutputVector(vector<string> v)
+{
+    cout << (int)v.size() + "BEFORE I WAS: ";
+    for(int i=0;i<v.size();i++)
+        cout<< "\""+ v[i] +"\" ";
+    cout << endl;
+}
 vector<string> infixToPostfix(vector<string> infix)
 { // + * , pow( ( )
+    cout << "INFIX POSTFIX" << "\n";
 	vector<string> postfix;
 	stack<string> st;
 	for(int i=0;i<(int)infix.size();i++)
@@ -31,7 +44,7 @@ vector<string> infixToPostfix(vector<string> infix)
 			{
 				postfix.push_back(st.top()+"");
 				st.pop();
-				if(st.empty) BAD();
+				if(st.empty()) BAD();
 			}
 		}
 		if(infix[i] == "*")
@@ -67,19 +80,27 @@ vector<string> infixToPostfix(vector<string> infix)
 			}
 		}
 	}
-
+    cout << "INFIX POSTFIX OVER" << "\n";
 	return postfix;
-	
 }
 
-
-vector<string> tokenizeExpression(string expr)
+vector<string> tokenizeExpression(string expr) // Tokenize the expression for parsing.
 {
-	vector<string> tokens;
-	string temp = "";
-	for(int i=0;i<(int)expr.length;i++)
+    cout << "TOKENOZE" << "\n";
+	vector<string> tokens; // Generated tokens go here.
+    tokens.push_back("TEST");
+	string temp = ""; // Current token that's being produced.
+	for(int i=0;i<(int)expr.length();i++)
 	{
-		if(expr[i] == '+' || expr[i] == '*' || expr[i] == '(' || expr[i] == ')' || expr[i] == ',')
+        DebugOutputVector(tokens);
+        if(expr[i] == ' ') // If there is a space, skip it and finish the current token. BUT if it is pow maybe there will be a ( so keep it there buddy.
+        {
+            if(temp.length() > 0 && temp!="pow") {
+                tokens.push_back(temp);
+                temp = "";
+            }
+        }
+		if(expr[i] == '+' || expr[i] == '*' || expr[i] == '(' || expr[i] == ')' || expr[i] == ',') // Symbols, if something in temp finish that token.
 		{
 			if(temp == "pow" && expr[i] == '(')
 			{
@@ -94,11 +115,13 @@ vector<string> tokenizeExpression(string expr)
 			else
 				tokens.push_back(expr[i]+"");
 		}
-		if(('a' <= expr[i] && 'z' >= expr[i]) || ('A' <= expr[i] && 'Z' >= expr[i]) || ('0' <= expr[i] && '9' >= expr[i]))
+		if(('a' <= expr[i] && 'z' >= expr[i]) || ('A' <= expr[i] && 'Z' >= expr[i]) || ('0' <= expr[i] && '9' >= expr[i])) // Alphanumeric, add to temp.
 		{
 			temp = temp + expr[i];
 		}
 	}
+    cout << "TOKENOZE OVER" << "\n";
+    return tokens;
 }
 void printMov(ofstream& g,string dest,string source){
 	g<<"mov "+dest+","+source;
@@ -112,13 +135,16 @@ void printMul(ofstream& g,string source){
 void printPow(ofstream& g,string dest,string source){
 	// TODO
 }
-string createNewSpace()
+string createNewSpace() // Underscore for stack spaces.
 {
-		string newstr = "_comp_" + ++createdVariableCount;
-		varset.insert(newstr);
+		string newstr = "_" + ++createdSpaceCount;
 		return newstr;
 }
-
+string createNewVar() // Dollar for actual variables from comp code.
+{
+    string newstr = "$" + ++createdVariableCount;
+    return newstr;
+}
 string giveSpace()
 {
 	if(freeSpaces.empty()){
@@ -135,33 +161,40 @@ void freeSpace(string name)
 	if(name[0]!='_') return;
 	freeSpaces.push(name);
 }
-set<string> varset;
-int createdVariableCount=0;
-stack<string> freeSpaces;
+bool IsNumber(string st)
+{
+    return '0' <= st[0] && '9' >= st[0];
+}
+// TODO ADD LINE COUNT FOR COMPILER ERROR
+
 int main(int argc,char* argv[]){
  	string file=(string(argv[1]));
 	string newfilename=(file.substr(0,file.find_last_of('.'))+".asm");
 	ofstream g(newfilename);
     ifstream f(argv[1]);
     string line;
+    cout << "BEFORE WHILE" << "\n";
     while (getline(f, line)){
-		string found;
+        cout << "Line i got: "<< line << "\n";
+        string found;
 		unsigned long tem=line.find("=");
 		if(tem==string::npos)
 		{
-			
+            cout << "WHOA IT IS NOT ASSIGNMENT" << "\n";
 			
 			//TODO Tell assembly to print values
 		}
-
 		else
 		{
-			//Assuming single space around '='
+			//Assuming single space around '=' DONT DO THIS THIS WRONG
+            cout << "IT IS ASSIGNMENT" << "\n";
+			vector<string> postfix=infixToPostfix(tokenizeExpression(line.substr(tem+1)));
 
-			vector<string> postfix=infixToPostfix(tokenizeExpression(line.substr(tem+2)));
+            cout << "GONNA PRINT VECTORS" << "\n";
+            DebugOutputVector(postfix);
 			stack<string> myst;
 			for(int i=0;i<postfix.size();i++){
-
+                //OPERATIONS
 				if(postfix[i]=="+"){
 					//BAD, MORE BAD IF TWO THINGS ARE OPERANDS
 					string l=myst.top();
@@ -188,7 +221,7 @@ int main(int argc,char* argv[]){
 					printMov(g,"ax",l);
 					printMov(g,result,r);
 					printMul(g,result);
-					printMov(g,result,ax);
+					printMov(g,result,"ax");
 					myst.push(result);
 					freeSpace(l);
 					freeSpace(r);
@@ -207,26 +240,34 @@ int main(int argc,char* argv[]){
 					printMov(g,"ax",l);
 					printMov(g,result,r);
 					printMul(g,result);
-					printMov(g,result,ax);
+					printMov(g,result,"ax");
 					myst.push(result);
 					freeSpace(l);
 					freeSpace(r);
 					continue;
 				}
-				// operations
 
-				myst.push(postfix[i]);
-				if(!isdigit(postfix[i][0])){ // Our variables?
-					varset.insert(postfix[i]);
+				// CONSTANT NUMBER
+                if(IsNumber(postfix[i]))
+                {
+                    myst.push(postfix[i]);
+                }
+                // VARIABLE
+				else{
+					if(varmap.find(postfix[i])==varmap.end()) // If this is the first time we counter this variable add it to map with $index form of it.
+                        varmap[postfix[i]]=createNewVar();
+                    myst.push(varmap[postfix[i]]);
 				}
 
 
 			}
 
 		}
+
 		/*vector<char> words;
         split1(line,words);*/
 		
         // cout << line << std::endl;
     }
+    cout << "AFTER A WHILE" << "\n";
 }
