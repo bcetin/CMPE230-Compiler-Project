@@ -1,3 +1,4 @@
+jmp main
 print_hex:
 pusha
 mov bx, offset outhex
@@ -57,6 +58,7 @@ ad1u dw 0
 ad1l dw 0
 ad2u dw 0
 ad2l dw 0
+main:
 mov w _1l,0005
 mov w _1u,0000
 mov w ad1l,w _1l
@@ -70,8 +72,8 @@ mov w $1l,w _1l
 mov w $1u,w _1u
 mov w _2l,w $1l
 mov w _2u,w $1u
-mov w[outhex],_2l
-mov w[outhex+2],_2u
+mov w[outhex+2],_2l
+mov w[outhex],_2u
 call print_hex
 mov ah,4ch
 mov al,00

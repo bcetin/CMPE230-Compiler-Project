@@ -191,7 +191,7 @@ void printPow(string dest,string source){
 	// TODO
 }
 void printOut(string output){ // TODO IF ONLY NUMBER?
-    g<<"mov w[outhex],"+output+"l\nmov w[outhex+2],"+output+"u\ncall print_hex\n";
+    g<<"mov w[outhex+2],"+output+"l\nmov w[outhex],"+output+"u\ncall print_hex\n";
 }
 string createNewSpace() // Underscore for stack spaces.
 {
@@ -315,9 +315,10 @@ string executePostfix(ofstream &g,vector <string> &postfix)
 void initAssembly()
 {
     // Hexadecimal print function
-    g << "print_hex:\npusha\nmov bx, offset outhex\nmov dx, w[bx]\ncall print_half\nmov bx, offset outhex\nmov dx, w[bx+2]\ncall print_half\nMOV AH,02\nMOV DL,10\nINT 21h\npopa\nret\nprint_half:\npusha\nmov cx,4\nchar_loop:\ndec cx\nmov ax,dx\nshr dx,4\nand ax,0fh\nmov bx, offset string_output\nadd bx, cx\nmov b[bx],al\ncmp ax,10\njl is_num\nadd b[bx],7\nis_num:\nadd b[bx],30h\ncmp cx,0\nje print_half_done\njmp char_loop\nprint_half_done:\nmov bx,offset string_output+4\nmov b[bx],'$'\nmov dx, offset string_output\nmov ah,09\nint 21h\npopa\nret\nstring_output db 5 DUP 0\nouthex dw 2 DUP 0\n";
+    g << "jmp main\nprint_hex:\npusha\nmov bx, offset outhex\nmov dx, w[bx]\ncall print_half\nmov bx, offset outhex\nmov dx, w[bx+2]\ncall print_half\nMOV AH,02\nMOV DL,10\nINT 21h\npopa\nret\nprint_half:\npusha\nmov cx,4\nchar_loop:\ndec cx\nmov ax,dx\nshr dx,4\nand ax,0fh\nmov bx, offset string_output\nadd bx, cx\nmov b[bx],al\ncmp ax,10\njl is_num\nadd b[bx],7\nis_num:\nadd b[bx],30h\ncmp cx,0\nje print_half_done\njmp char_loop\nprint_half_done:\nmov bx,offset string_output+4\nmov b[bx],'$'\nmov dx, offset string_output\nmov ah,09\nint 21h\npopa\nret\nstring_output db 5 DUP 0\nouthex dw 2 DUP 0\n";
     // 32 bit adder function
     g << "comp_add:\npusha\nmov bx,w ad1l\nadd bx,w ad2l\njnc add_no_carry\ninc w ad1u\nadd_no_carry:\nmov w ad1l,bx\nmov bx,w ad1u\nadd bx,w ad2u\nmov w ad1u,bx\npopa\nret\nad1u dw 0\nad1l dw 0\nad2u dw 0\nad2l dw 0\n";
+    g << "main:\n";
 }
 void finalizeAssembly()
 {
