@@ -7,8 +7,6 @@
 #IncludeRegexTransform: 
 
 /cygdrive/c/Users/burak/Documents/GitHub/CompilerHWCMPE230/comp.cpp
-cstdio
--
 string
 -
 stack
@@ -22,5 +20,7 @@ fstream
 set
 -
 map
+-
+cstdlib
 -
 
