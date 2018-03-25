@@ -274,8 +274,8 @@ string executePostfix(ofstream &g,vector <string> &postfix)
             myst.pop();
             string result = giveSpace();
 
-            printMov(result,l);
-            printPow(result,r);
+            printMov(result,r);
+            printPow(result,l);
             myst.push(result);
             freeSpace(l);
             freeSpace(r);

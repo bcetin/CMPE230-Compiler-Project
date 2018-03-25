@@ -124,19 +124,66 @@ po2l dw 0
 paddu dw 0
 paddl dw 0
 main:
-mov w _1l,00003h
+mov w $1l,0abcdh
+mov w $1u,00001h
+mov w $2l,00010h
+mov w $2u,00000h
+mov w _1l,00002h
 mov w _1u,00000h
 mov w po1l,w _1l
 mov w po1u,w _1u
-mov w po2l,00003h
+mov w po2l,00000h
 mov w po2u,00000h
 call comp_pow
 mov w _1l,w po1l
 mov w _1u,w po1u
-mov w $1l,w _1l
-mov w $1u,w _1u
-mov w _2l,w $1l
-mov w _2u,w $1u
+mov w _2l,w _1l
+mov w _2u,w _1u
+mov w mu1l,w _2l
+mov w mu1u,w _2u
+mov w mu2l,w $2l
+mov w mu2u,w $2u
+call comp_mul
+mov w _2l,w mu1l
+mov w _2u,w mu1u
+mov w _1l,w _2l
+mov w _1u,w _2u
+mov w mu1l,w _1l
+mov w mu1u,w _1u
+mov w mu2l,w $1l
+mov w mu2u,w $1u
+call comp_mul
+mov w _1l,w mu1l
+mov w _1u,w mu1u
+mov w $3l,w _1l
+mov w $3u,w _1u
+mov w _2l,00001h
+mov w _2u,00000h
+mov w ad1l,w _2l
+mov w ad1u,w _2u
+mov w ad2l,w $3l
+mov w ad2u,w $3u
+call comp_add
+mov w _2l,w ad1l
+mov w _2u,w ad1u
+mov w _3l,00003h
+mov w _3u,00000h
+mov w mu1l,w _3l
+mov w mu1u,w _3u
+mov w mu2l,w _2l
+mov w mu2u,w _2u
+call comp_mul
+mov w _3l,w mu1l
+mov w _3u,w mu1u
+mov w $2l,w _3l
+mov w $2u,w _3u
+mov w _2l,w $3l
+mov w _2u,w $3u
+mov w[outhex+2],_2l
+mov w[outhex],_2u
+call print_hex
+mov w _2l,w $2l
+mov w _2u,w $2u
 mov w[outhex+2],_2l
 mov w[outhex],_2u
 call print_hex
@@ -147,5 +194,11 @@ _1u dw 0
 _1l dw 0
 _2u dw 0
 _2l dw 0
+_3u dw 0
+_3l dw 0
 $1u dw 0
 $1l dw 0
+$2u dw 0
+$2l dw 0
+$3u dw 0
+$3l dw 0
