@@ -63,7 +63,7 @@ vector<string> infixToPostfix(vector<string> infix)
 			{
 				postfix.push_back(st.top());
 				st.pop();
-				if(st.empty()) BAD();
+				if(st.empty()) syntaxError();
 			}
 		}
 		else if(infix[i] == "*")
@@ -99,8 +99,9 @@ vector<string> infixToPostfix(vector<string> infix)
 				st.pop();
 			}
 			if(st.top()=="pow("){
-				st.push("^");
+				postfix.push_back("^");
 			}
+            st.pop();
 		}
         else
         {
@@ -169,8 +170,8 @@ vector<string> tokenizeExpression(string expr) // Tokenize the expression for pa
 void printMov(string dest,string source){
     if(isNumber(source)) //IS SOURCE NUMBER?
     {
-        g<<"mov w "+ dest+"l,"+ source.substr(4,4) << endl; //Move source to dest
-        g<<"mov w "+ dest+"u,"+ source.substr(0,4) << endl;
+        g<<"mov w "+ dest+"l,0"+ source.substr(4,4)+"h" << endl; //Move source to dest
+        g<<"mov w "+ dest+"u,0"+ source.substr(0,4)+"h" << endl;
     } else
     {
         g<<"mov w "+ dest+"l,w "+source+"l" << endl; //Move source to dest
@@ -184,11 +185,17 @@ void printAdd(string dest,string source){
     g<<"call comp_add" << endl; //Call adder
     printMov(dest,"ad1");//Move result to dest
 }
-void printMul(string source){
-	g<<"mul "+source << endl;
+void printMul(string dest,string source){
+	printMov("mu1",dest);
+    printMov("mu2",source);
+    g << "call comp_mul\n";
+    printMov(dest,"mu1");
 }
 void printPow(string dest,string source){
-	// TODO
+    printMov("po1",dest);
+    printMov("po2",source);
+    g << "call comp_pow\n";
+    printMov(dest,"po1");
 }
 void printOut(string output){ // TODO IF ONLY NUMBER?
     g<<"mov w[outhex+2],"+output+"l\nmov w[outhex],"+output+"u\ncall print_hex\n";
@@ -223,6 +230,7 @@ void freeSpace(string name)
 // TODO ADD LINE COUNT FOR COMPILER ERROR, ADD ERRORS FOR EXTRA = charss
 string executePostfix(ofstream &g,vector <string> &postfix)
 {
+    cout << "START EXECUTE POSTFIX" << "\n";
     cout << "GONNA PRINT VECTORS" << "\n";
     DebugOutputVector(postfix);
     stack<string> myst;
@@ -252,33 +260,26 @@ string executePostfix(ofstream &g,vector <string> &postfix)
             myst.pop();
             string result = giveSpace();
 
-            printMov("ax", l);
-            printMov(result, r);
-            printMul(result);
-            printMov(result, "ax");
+            printMov(result,l);
+            printMul(result,r);
             myst.push(result);
             freeSpace(l);
             freeSpace(r);
             continue;
         }
         if (postfix[i] == "^") {
-            //BAD, MORE BAD IF TWO THINGS ARE OPERANDS
-            // TODO
-/*
             string l = myst.top();
             myst.pop();
             string r = myst.top();
             myst.pop();
             string result = giveSpace();
 
-            printMov(g, "ax", l);
-            printMov(g, result, r);
-            printMul(g, result);
-            printMov(g, result, "ax");
+            printMov(result,l);
+            printPow(result,r);
             myst.push(result);
             freeSpace(l);
             freeSpace(r);
-            continue;*/
+            continue;
         }
 
         // CONSTANT NUMBER
@@ -288,13 +289,13 @@ string executePostfix(ofstream &g,vector <string> &postfix)
                 syntaxError();
             cout << postfix[i] << endl;
             string num8 = "";
-            cout << num8 << endl;
+            //cout << num8 << endl;
             for(int j=0;j<8-postfix[i].length();j++)
                 num8.push_back('0');
-            cout << num8 << endl;
+            //cout << num8 << endl;
             num8=num8 + postfix[i];
-            cout << num8 << endl;
-            cout << "NIMBER" << endl;
+            //cout << num8 << endl;
+           // cout << "NIMBER" << endl;
             cout << "Constant Number: " << num8 << endl;
             myst.push(num8);
         }
@@ -305,7 +306,7 @@ string executePostfix(ofstream &g,vector <string> &postfix)
             myst.push(varmap[postfix[i]]);
         }
     }
-    cout << "HEYO: " << myst.top() <<endl;
+    cout << "HEYO: " << myst.size() << " TOP: "<< myst.top() <<endl;
     if(myst.size()!=1)
         syntaxError();
     if(!(myst.top()[0]=='_' || myst.top()[0]=='$' || isNumber(myst.top())))
@@ -318,6 +319,11 @@ void initAssembly()
     g << "jmp main\nprint_hex:\npusha\nmov bx, offset outhex\nmov dx, w[bx]\ncall print_half\nmov bx, offset outhex\nmov dx, w[bx+2]\ncall print_half\nMOV AH,02\nMOV DL,10\nINT 21h\npopa\nret\nprint_half:\npusha\nmov cx,4\nchar_loop:\ndec cx\nmov ax,dx\nshr dx,4\nand ax,0fh\nmov bx, offset string_output\nadd bx, cx\nmov b[bx],al\ncmp ax,10\njl is_num\nadd b[bx],7\nis_num:\nadd b[bx],30h\ncmp cx,0\nje print_half_done\njmp char_loop\nprint_half_done:\nmov bx,offset string_output+4\nmov b[bx],'$'\nmov dx, offset string_output\nmov ah,09\nint 21h\npopa\nret\nstring_output db 5 DUP 0\nouthex dw 2 DUP 0\n";
     // 32 bit adder function
     g << "comp_add:\npusha\nmov bx,w ad1l\nadd bx,w ad2l\njnc add_no_carry\ninc w ad1u\nadd_no_carry:\nmov w ad1l,bx\nmov bx,w ad1u\nadd bx,w ad2u\nmov w ad1u,bx\npopa\nret\nad1u dw 0\nad1l dw 0\nad2u dw 0\nad2l dw 0\n";
+    // 32 bit multiplication function
+    g << "comp_mul:\npusha\nmov ax,w mu1l\nmul w mu2l\nmov w varu,dx\nmov w varl,ax\nmov ax,w mu1l\nmul w mu2u\nadd ax,w varu\nmov w varu,ax\nmov ax,w mu1u\nmul w mu2l\nadd ax, w varu\nmov w varu,ax\nmov w mu1u,w varu\nmov w mu1l,w varl\npopa\nret\nvaru dw 0\nvarl dw 0\nmu1u dw 0\nmu1l dw 0\nmu2u dw 0\nmu2l dw 0\n";
+    // 32 bit power function
+    g << "comp_pow:\npusha\ncmp w po2l,1h\njne pow_skip\npopa\nret\npow_skip:\nmov bx,w po2l\nmov w paddu,w po1u\nmov w paddl,w po1l\nmov w po1l,1h\nmov w po1u,0h\npow_loop:\nmov ax,bx\nand ax,1h\njz pow_not_one\nmov w mu1l, w po1l\nmov w mu1u, w po1u\nmov w mu2l, w paddl\nmov w mu2u, w paddu\ncall comp_mul\nmov  w po1l,w mu1l\nmov  w po1u,w mu1u\npow_not_one:\nmov w mu1l, w paddl\nmov w mu1u, w paddu\nmov w mu2l, w paddl\nmov w mu2u, w paddu\ncall comp_mul\nmov  w paddl,w mu1l\nmov  w paddu,w mu1u\nshr bx,1\njnz pow_loop\npopa\nret\npo1u dw 0\npo1l dw 0\npo2u dw 0\npo2l dw 0\npaddu dw 0\npaddl dw 0\n";
+    // Main
     g << "main:\n";
 }
 void finalizeAssembly()
@@ -347,7 +353,7 @@ int main(int argc,char* argv[]){
 		unsigned long tem=line.find("=");
 		if(tem==string::npos)
 		{
-            cout << "I DONT KNOW HOW TO PRINT" << "\n";
+            cout << "TIME TO PRINT" << endl;
             vector<string> postfix=infixToPostfix(tokenizeExpression(line));
             string tempSpace=giveSpace();
             printMov(tempSpace,executePostfix(g,postfix));

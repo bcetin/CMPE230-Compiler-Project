@@ -58,16 +58,81 @@ ad1u dw 0
 ad1l dw 0
 ad2u dw 0
 ad2l dw 0
+comp_mul:
+pusha
+mov ax,w mu1l
+mul w mu2l
+mov w varu,dx
+mov w varl,ax
+mov ax,w mu1l
+mul w mu2u
+add ax,w varu
+mov w varu,ax
+mov ax,w mu1u
+mul w mu2l
+add ax, w varu
+mov w varu,ax
+mov w mu1u,w varu
+mov w mu1l,w varl
+popa
+ret
+varu dw 0
+varl dw 0
+mu1u dw 0
+mu1l dw 0
+mu2u dw 0
+mu2l dw 0
+comp_pow:
+pusha
+cmp w po2l,1h
+jne pow_skip
+popa
+ret
+pow_skip:
+mov bx,w po2l
+mov w paddu,w po1u
+mov w paddl,w po1l
+mov w po1l,1h
+mov w po1u,0h
+pow_loop:
+mov ax,bx
+and ax,1h
+jz pow_not_one
+mov w mu1l, w po1l
+mov w mu1u, w po1u
+mov w mu2l, w paddl
+mov w mu2u, w paddu
+call comp_mul
+mov  w po1l,w mu1l
+mov  w po1u,w mu1u
+pow_not_one:
+mov w mu1l, w paddl
+mov w mu1u, w paddu
+mov w mu2l, w paddl
+mov w mu2u, w paddu
+call comp_mul
+mov  w paddl,w mu1l
+mov  w paddu,w mu1u
+shr bx,1
+jnz pow_loop
+popa
+ret
+po1u dw 0
+po1l dw 0
+po2u dw 0
+po2l dw 0
+paddu dw 0
+paddl dw 0
 main:
-mov w _1l,0005
-mov w _1u,0000
-mov w ad1l,w _1l
-mov w ad1u,w _1u
-mov w ad2l,0003
-mov w ad2u,0000
-call comp_add
-mov w _1l,w ad1l
-mov w _1u,w ad1u
+mov w _1l,00003h
+mov w _1u,00000h
+mov w po1l,w _1l
+mov w po1u,w _1u
+mov w po2l,00003h
+mov w po2u,00000h
+call comp_pow
+mov w _1l,w po1l
+mov w _1u,w po1u
 mov w $1l,w _1l
 mov w $1u,w _1u
 mov w _2l,w $1l
