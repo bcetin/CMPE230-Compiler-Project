@@ -9,12 +9,13 @@ using namespace std;
 
 ofstream g; // Output .asm file
 ifstream f; // Input .co file
-
+string asmfilename;
 int lineCount=0; // Read line count for syntax errors
 void syntaxError() //TODO Syntax error
 {
-    cout << "ERROR" << endl;
-    g << "ERROR" << endl;
+    g.close();
+    g.open(asmfilename);
+    g << "Line " << lineCount << ": Syntax error";
     exit(0); // Terminate the program
 }
 
@@ -54,7 +55,7 @@ void finalizeAssembly()
     }
 }
 
-//A function used for debugging.
+//A function used for debugging this code.
 /*void DebugOutputVector(vector<string> v)
 {
     cout << "Size: " << (int)v.size() << " Vector: ";
@@ -98,8 +99,11 @@ vector<string> tokenizeExpression(string expr) // Tokenize an infix expression f
         {
             temp+=expr[i];
         }
-        else // Unknown character in source code. Syntax Error.
-            syntaxError();
+        else // Unknown character in source code. Syntax Error unless it is a newline character.
+        {
+            if(!isspace(expr[i]))
+                syntaxError();
+        }
     }
     return tokens;
 }
@@ -223,123 +227,132 @@ void freeSpace(string name) //Free a space that won't be used anymore by adding 
 	freeSpaces.push(name);
 }
 
+bool isOperator(string s)
+{
+    return s=="^" || s=="+" || s=="*";
+}
 string executePostfix(ofstream &g,vector <string> &postfix) //Execute a tokenized postfix expression by printing instructions to .asm output.
 {
-    stack<string> myst;
+    stack<string> myst; // Execution stack. After evaluating some operations we put the name of space that holds the result into this stack.
     for(int i=0;i<postfix.size();i++) {
         if (postfix[i] == "+") {
-        cout << "Plus" << endl;
-        string l = myst.top();
+            if(myst.size()<2)
+                syntaxError();
+            //Pop 2 values from stack to add.
+            string l = myst.top();
             myst.pop();
             string r = myst.top();
             myst.pop();
+            //If any of them are operators there is a syntax error.
+            if(isOperator(l) || isOperator(r))
+                syntaxError();
+            //Allocate a new space for evaluation.
             string result = giveSpace();
-
+            //Perform addition.
             printMov(result, l);
             printAdd(result, r);
+            //Push the result back to the stack.
             myst.push(result);
+            //Free l and r since they won't be used anymore.
             freeSpace(l);
             freeSpace(r);
             continue;
         }
         if (postfix[i] == "*") {
-            //BAD, MORE BAD IF TWO THINGS ARE OPERANDS
+            if(myst.size()<2)
+                syntaxError();
+            //Pop 2 values from stack to multiply.
             string l = myst.top();
             myst.pop();
             string r = myst.top();
             myst.pop();
+            //If any of them are operators there is a syntax error.
+            if(isOperator(l) || isOperator(r))
+                syntaxError();
+            //Allocate a new space for evaluation.
             string result = giveSpace();
-
+            //Perform multiplication.
             printMov(result,l);
             printMul(result,r);
+            //Push the result back to the stack.
             myst.push(result);
+            //Free l and r since they won't be used anymore.
             freeSpace(l);
             freeSpace(r);
             continue;
         }
         if (postfix[i] == "^") {
+            if(myst.size()<2)
+                syntaxError();
             string l = myst.top();
             myst.pop();
             string r = myst.top();
             myst.pop();
+            //If any of them are operators there is a syntax error.
+            if(isOperator(l) || isOperator(r))
+                syntaxError();
             string result = giveSpace();
-
+            //Allocate a new space for evaluation.
             printMov(result,r);
             printPow(result,l);
+            //Push the result back to the stack.
             myst.push(result);
+            //Free l and r since they won't be used anymore.
             freeSpace(l);
             freeSpace(r);
             continue;
         }
-
-        // CONSTANT NUMBER
-        if (isNumber(postfix[i])) {
-            cout << "NIMBER" << endl;
-            if(postfix[i].length()>8) // Error if bigger than 32 bit. 0AAAAAAAA is wrong since bigger than 32 bit. IF THIS IS A PROBLEM I WILL OBJECT SINCE THIS WASNT CLARIFIED. - BURAK CETIN
+        if (isNumber(postfix[i])) { // If the token is a number fix its format and push it to the execution stack.
+            if(postfix[i].length()>8) // Syntax error if a constant is larger than 32 bit.
                 syntaxError();
-            cout << postfix[i] << endl;
             string num8 = "";
-            //cout << num8 << endl;
             for(int j=0;j<8-postfix[i].length();j++)
                 num8.push_back('0');
-            //cout << num8 << endl;
             num8=num8 + postfix[i];
-            //cout << num8 << endl;
-           // cout << "NIMBER" << endl;
-            cout << "Constant Number: " << num8 << endl;
             myst.push(num8);
         }
-            // VARIABLE
-        else {
-            if (varmap.find(postfix[i]) == varmap.end()) // If this is the first time we counter this variable add it to map with $index form of it.
+        else {// The token is a variable. If this is the first time we encounter this variable add it to map with $index form of it. Then the variable to the execution stack.
+            if (varmap.find(postfix[i]) == varmap.end())
                 varmap[postfix[i]] = createNewVar();
             myst.push(varmap[postfix[i]]);
         }
     }
-    cout << "HEYO: " << myst.size() << " TOP: "<< myst.top() <<endl;
-    if(myst.size()!=1)
+    if(myst.size()!=1) // If evaluation did not yield a single token there must be a syntax error.
         syntaxError();
-    if(!(myst.top()[0]=='_' || myst.top()[0]=='$' || isNumber(myst.top())))
+    if(!(myst.top()[0]=='_' || myst.top()[0]=='$' || isNumber(myst.top()))) //If that token is not a value there must be a syntax error.
         syntaxError();
     return myst.top();
 }
 int main(int argc,char* argv[]){
- 	string file=(string(argv[1]));
-	string newfilename=(file.substr(0,file.find_last_of('.'))+".asm");
-	g.open(newfilename);
-    f.open(argv[1]);
-    initAssembly();
+ 	string file=(string(argv[1])); // Take the filename parameter.
+	asmfilename=(file.substr(0,file.find_last_of('.'))+".asm"); // Generate the name of .asm file.
+	g.open(asmfilename); // Open the .asm file for writing.
+    f.open(argv[1]); // Open the .co file for reading.
+    initAssembly(); // Print the initial assembly code that includes functions for hexadecimal output,multiplying etc.
     string line;
-    cout << "BEFORE WHILE" << "\n";
-    while (getline(f, line)){
-        cout << "Line i got: "<< line << "\n";
-        ++lineCount;
+    while (getline(f, line)){ // Get the next line from the .co file.
+        ++lineCount; // Increase line count
         string found;
-		unsigned long tem=line.find("=");
-		if(tem==string::npos)
+		unsigned long tem=line.find("="); //Find an equal sign on line.
+		if(tem==string::npos) // If there is no equal sign this is a print command.
 		{
-            cout << "TIME TO PRINT" << endl;
-            vector<string> postfix=infixToPostfix(tokenizeExpression(line));
+            vector<string> postfix=infixToPostfix(tokenizeExpression(line)); // Get the postfix form of the expression.
             string tempSpace=giveSpace();
-            printMov(tempSpace,executePostfix(g,postfix));
-            printOut(tempSpace);
-            freeSpace(tempSpace);
+            printMov(tempSpace,executePostfix(g,postfix)); // Move the result to a temporary space.
+            printOut(tempSpace); // Print the value in hexadecimal.
+            freeSpace(tempSpace); // Free the used space.
 		}
 		else
 		{
-			//Assuming single space around '=' DONT DO THIS THIS WRONG
-            cout << "IT IS ASSIGNMENT" << endl;
-            vector<string> postfix=infixToPostfix(tokenizeExpression(line.substr(tem+1)));
-            vector<string> tokenizedLeft=tokenizeExpression(line.substr(0,tem));
-            if(tokenizedLeft.size()!=1)
+            vector<string> postfix=infixToPostfix(tokenizeExpression(line.substr(tem+1)));  // Get the postfix form of right hand side.
+            vector<string> tokenizedLeft=tokenizeExpression(line.substr(0,tem)); // Tokenize the left hand side.
+            if(tokenizedLeft.size()!=1) // If left hand side is not a variable there is a syntax error.
                 syntaxError();
-            if (varmap.find(tokenizedLeft[0]) == varmap.end()) // If this is the first time we counter this variable add it to map with $index form of it.
+            if (varmap.find(tokenizedLeft[0]) == varmap.end()) // If this is the first time we encounter this variable add it to map with $index form of it.
                 varmap[tokenizedLeft[0]] = createNewVar();
-            printMov(varmap[tokenizedLeft[0]],executePostfix(g,postfix));
+            printMov(varmap[tokenizedLeft[0]],executePostfix(g,postfix)); // Move the result of RHS to the variable on the LHS.
 		}
-		
-        // cout << line << std::endl;
     }
+    //Print out finalizing assembly code which includes memory allocations.
     finalizeAssembly();
-    cout << "AFTER A WHILE YOU DID IT" << "\n";
 }
