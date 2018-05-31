@@ -324,6 +324,9 @@ string executePostfix(ofstream &g,vector <string> &postfix) //Execute a tokenize
     return myst.top();
 }
 int main(int argc,char* argv[]){
+
+
+
  	string file=(string(argv[1])); // Take the filename parameter.
 	asmfilename=(file.substr(0,file.find_last_of('.'))+".asm"); // Generate the name of .asm file.
 	g.open(asmfilename); // Open the .asm file for writing.
