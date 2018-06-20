@@ -1,6 +1,6 @@
 # CMPE 230 Compiler Project
 
-This was an assignment given to us as a part of our CMPE 230 course in Boğaziçi Üniversity Computer Engineering Undergraduate Program on Spring 2018 term. [Specifications of the assignment is included in the repository.](/cmpe230spring2018hw1.pdf)
+This was an assignment given to us as a part of our CMPE 230 course in Boğaziçi University Computer Engineering Undergraduate Program on Spring 2018 term. [Specifications of the assignment is included in the repository.](/cmpe230spring2018hw1.pdf)
 Our goal was to create a simple compiler for a simple programming language called COMP. Our compiler creates an A86 assembly code for the given COMP language code.
 
 ## Implementation
